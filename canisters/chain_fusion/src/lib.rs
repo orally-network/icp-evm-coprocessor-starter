@@ -8,8 +8,7 @@ mod state;
 
 use std::time::Duration;
 
-use logs::scrape_eth_logs;
-
+use evm_logs_types::{Event, SubscriptionRegistration, RegisterSubscriptionResult, Filter};
 use lifecycle::InitArg;
 use state::{read_state, State};
 
@@ -17,7 +16,33 @@ use crate::state::{initialize_state, mutate_state};
 
 pub const SCRAPING_LOGS_INTERVAL: Duration = Duration::from_secs(3 * 60);
 
-fn setup_timers() {
+async fn subscribe_on_eth_logs() {
+    let get_logs_address = read_state(|s| s.get_logs_addresses.clone());
+
+    let logs_canister_id = read_state(|s| s.evm_logs_canister);
+    
+    let subscription = SubscriptionRegistration {
+        memo: None,
+        filter: Filter {
+            topics: None, 
+            address: get_logs_address.first().expect("get_logs_address must be set").clone(),
+        },
+        chain_id: 1,
+        canister_to_top_up: ic_cdk::id(),
+    };
+
+    let result: (RegisterSubscriptionResult,) = ic_cdk::call(
+        logs_canister_id,
+        "subscribe",
+        (subscription,),
+    )
+    .await
+    .expect("Failed to call subscribe on evm-logs canister");
+
+    println!("Subscribe result: {:?}", result);
+}
+
+fn setup_evm_logs_subscription_timer() {
     let key_id = read_state(State::key_id);
     // as timers are synchronous, we need to spawn a new async task to get the public key
     ic_cdk_timers::set_timer(Duration::ZERO, || {
@@ -31,15 +56,23 @@ fn setup_timers() {
             });
         })
     });
-    // // Start scraping logs almost immediately after the install, then repeat with the interval.
-    ic_cdk_timers::set_timer(Duration::from_secs(10), || ic_cdk::spawn(scrape_eth_logs()));
-    ic_cdk_timers::set_timer_interval(SCRAPING_LOGS_INTERVAL, || ic_cdk::spawn(scrape_eth_logs()));
+    // // Subscribe on evm-logs-canister almost immediately after the install.
+    ic_cdk_timers::set_timer(Duration::from_secs(10), || ic_cdk::spawn(subscribe_on_eth_logs()));
+
+}
+
+#[ic_cdk::update]
+fn handle_notification(event: Event) {
+    println!("Received notification for event ID: {:?}", event.id);
+    println!("Event details: {:?}", event);
 }
 
 #[ic_cdk::init]
-fn init(arg: InitArg) {
+async fn init(arg: InitArg) {
+    ic_cdk::println!("evm logs canister: {:?}", arg.evm_logs_canister.to_text());
     initialize_state(state::State::try_from(arg).expect("BUG: failed to initialize canister"));
-    setup_timers();
+
+    setup_evm_logs_subscription_timer();
 }
 
 #[ic_cdk::query]

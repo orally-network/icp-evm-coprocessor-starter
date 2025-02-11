@@ -1,6 +1,6 @@
 use crate::state::{InvalidStateError, State};
 use candid::types::number::Nat;
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use ethers_core::types::{H256, U256};
 use ic_cdk::api::management_canister::ecdsa::EcdsaKeyId;
 use std::str::FromStr;
@@ -16,6 +16,7 @@ pub struct InitArg {
     pub last_scraped_block_number: Nat,
     pub ecdsa_key_id: EcdsaKeyId,
     pub block_tag: BlockTag,
+    pub evm_logs_canister: Principal,
 }
 
 impl TryFrom<InitArg> for State {
@@ -30,6 +31,7 @@ impl TryFrom<InitArg> for State {
             last_scraped_block_number,
             ecdsa_key_id,
             block_tag,
+            evm_logs_canister,
         }: InitArg,
     ) -> Result<Self, Self::Error> {
         // validate contract addresses
@@ -61,6 +63,7 @@ impl TryFrom<InitArg> for State {
             evm_address: None,
             nonce: U256::zero(),
             block_tag,
+            evm_logs_canister,
         };
         Ok(state)
     }

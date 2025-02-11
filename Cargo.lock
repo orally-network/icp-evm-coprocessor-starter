@@ -292,6 +292,7 @@ dependencies = [
  "candid",
  "ethers-core",
  "evm-rpc-canister-types 4.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "evm_logs_types",
  "getrandom",
  "hex",
  "ic-canisters-http-types",
@@ -648,6 +649,17 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_bytes",
+ "serde_json",
+]
+
+[[package]]
+name = "evm_logs_types"
+version = "0.1.0"
+source = "git+https://github.com/orally-network/evm-logs-canister?branch=main#6466cc7ad863c1426961fd77a193f4f42a0262bb"
+dependencies = [
+ "candid",
+ "ic-cdk 0.14.0",
+ "serde",
  "serde_json",
 ]
 

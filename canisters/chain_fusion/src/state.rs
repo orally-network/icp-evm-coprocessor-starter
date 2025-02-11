@@ -1,6 +1,6 @@
 use evm_rpc_canister_types::{BlockTag, LogEntry, RpcService, RpcServices};
 
-use candid::Nat;
+use candid::{Nat, Principal};
 use ethers_core::types::U256;
 use ic_cdk::api::management_canister::ecdsa::EcdsaKeyId;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -11,9 +11,11 @@ thread_local! {
     static STATE: RefCell<Option<State>> = RefCell::default();
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct State {
     pub rpc_services: RpcServices,
+    pub evm_logs_canister: Principal,
     // this is needed when using the evm rpc providers `request` method
     #[allow(dead_code)]
     pub rpc_service: RpcService,
@@ -38,6 +40,7 @@ pub enum InvalidStateError {
     InvalidTopic(String),
 }
 
+#[allow(dead_code)]
 impl State {
     pub fn record_log_to_process(&mut self, log_entry: &LogEntry) {
         let event_source = log_entry.source();
@@ -138,6 +141,7 @@ pub fn initialize_state(state: State) {
     STATE.set(Some(state));
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Hash, Copy, Clone, PartialEq, Eq)]
 pub enum TaskType {
     ProcessLogs,
