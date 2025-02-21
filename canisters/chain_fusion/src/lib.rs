@@ -6,13 +6,15 @@ mod state;
 // uncomment to enable serving stored assets via http requests
 // mod storage;
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use evm_logs_types::{Event, SubscriptionRegistration, RegisterSubscriptionResult, Filter};
 use lifecycle::InitArg;
 use state::{read_state, State};
-
+use ic_cdk::api::call::call_with_payment128;
+use evm_rpc_types::{Hex20, Hex32};
 use crate::state::{initialize_state, mutate_state};
+use evm_rpc_types::LogEntry;
 
 pub const SCRAPING_LOGS_INTERVAL: Duration = Duration::from_secs(3 * 60);
 
@@ -25,16 +27,17 @@ async fn subscribe_on_eth_logs() {
         memo: None,
         filter: Filter {
             topics: None, 
-            address: get_logs_address.first().expect("get_logs_address must be set").clone(),
+            address: Hex20::from_str(&get_logs_address.first().expect("get_logs_address must be set").clone()).unwrap(), // TODO
         },
         chain_id: 1,
         canister_to_top_up: ic_cdk::id(),
     };
 
-    let result: (RegisterSubscriptionResult,) = ic_cdk::call(
+    let result: (RegisterSubscriptionResult,) = call_with_payment128(
         logs_canister_id,
         "subscribe",
         (subscription,),
+        10_000_000_000,
     )
     .await
     .expect("Failed to call subscribe on evm-logs canister");
@@ -65,6 +68,17 @@ fn setup_evm_logs_subscription_timer() {
 fn handle_notification(event: Event) {
     println!("Received notification for event ID: {:?}", event.id);
     println!("Event details: {:?}", event);
+
+
+    // evm_rpc_types and evm_rpc_canister_types are "different" types, 
+    // so we'll need to figure out how to handle this properly
+    // mutate_state(|s| s.record_log_to_process(&event.log_entry));
+    
+    // if read_state(State::has_logs_to_process) {
+    //     ic_cdk_timers::set_timer(Duration::from_secs(0), move || {
+    //         ic_cdk::spawn(process_logs())
+    //     });
+    // }
 }
 
 #[ic_cdk::init]

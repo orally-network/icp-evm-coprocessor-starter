@@ -26,5 +26,6 @@
     };
     get_logs_addresses = vec { "0x5FbDB2315678afecb367f032d93F642f64180aa3" };
     block_tag = variant { Latest = null };
+    evm_logs_canister = principal "tvuuf-gyaaa-aaaag-at3va-cai";
   }
 )
